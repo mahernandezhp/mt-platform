@@ -1,0 +1,13 @@
+backend/src/main/resources/application.properties
+
+#ignore class files
+*.class
+
+#excluir los archivos .lst y todo el directorio target/ de Git. El directorio target/ contiene archivos generados automáticamente
+*.lst
+!target/
+target/
+#excluir los archivos .env y .DS_Store de Git. El archivo .env contiene variables de entorno sensibles y .DS_Store es un archivo del sistema operativo macOS
+.env
+.DS_Store
+#excluir los archivos .iml y todo el directorio .idea/ de Git.
