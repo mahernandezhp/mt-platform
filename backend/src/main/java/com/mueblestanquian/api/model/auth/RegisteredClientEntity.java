@@ -1,4 +1,4 @@
-package com.mueblestanquian.api.model;
+package com.mueblestanquian.api.model.auth;
 
 import jakarta.persistence.*;
 
@@ -7,7 +7,7 @@ import org.hibernate.annotations.GenericGenerator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
-@Table(name = "oauth2_registered_client")
+@Table(name = "oauth2_registered_client", schema = "mt_main")
 public class RegisteredClientEntity {
     @Id
     @GeneratedValue(generator = "uuid2")

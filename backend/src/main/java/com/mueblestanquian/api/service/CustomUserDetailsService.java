@@ -1,8 +1,9 @@
 package com.mueblestanquian.api.service;
 
-import com.mueblestanquian.api.model.User;
-import com.mueblestanquian.api.model.Authority;
-import com.mueblestanquian.api.repository.UserRepository;
+import com.mueblestanquian.api.model.admin.User;
+import com.mueblestanquian.api.model.auth.Authority;
+import com.mueblestanquian.api.repository.admin.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,7 +19,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findById(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())

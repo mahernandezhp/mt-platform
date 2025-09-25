@@ -1,7 +1,8 @@
-package com.mueblestanquian.api.controller;
+package com.mueblestanquian.api.controller.auth;
 
-import com.mueblestanquian.api.model.RegisteredClientEntity;
-import com.mueblestanquian.api.repository.RegisteredClientRepository;
+import com.mueblestanquian.api.model.auth.RegisteredClientEntity;
+import com.mueblestanquian.api.repository.auth.RegisteredClientRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,16 +16,10 @@ public class RegisteredClientController {
     @PostMapping
     public ResponseEntity<?> registerClient(@RequestBody RegisteredClientEntity client) {
         try {
-            if (client.getId() == null || client.getId().isEmpty()) {
-                client.setId(java.util.UUID.randomUUID().toString());
-            }
-
-            // if (client.getRedirectUris() == null || client.getRedirectUris().isEmpty()) {
-            //     client.setRedirectUris("http://localhost:8080/callback");
+            // if (client.getId() == null || client.getId().isEmpty()) {
+            //     client.setId(java.util.UUID.randomUUID().toString());
             // }
-
-            System.out.println(client.toString());
-            
+            System.out.println("Client to register: " + client.getClientId());
             RegisteredClientEntity saved = registeredClientRepository.save(client);
             return ResponseEntity.ok(client);
         } catch (Exception e) {

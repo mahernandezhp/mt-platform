@@ -1,9 +1,11 @@
-package com.mueblestanquian.api.model;
+package com.mueblestanquian.api.model.auth;
+
+import com.mueblestanquian.api.model.admin.User;
 
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "authorities")
+@Table(name = "authorities", schema = "mt_main")
 public class Authority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,7 +1,8 @@
 package com.mueblestanquian.api.service;
 
-import com.mueblestanquian.api.model.RegisteredClientEntity;
-import com.mueblestanquian.api.repository.RegisteredClientRepository;
+import com.mueblestanquian.api.model.auth.RegisteredClientEntity;
+import com.mueblestanquian.api.repository.auth.RegisteredClientRepository;
+
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.stereotype.Service;
 

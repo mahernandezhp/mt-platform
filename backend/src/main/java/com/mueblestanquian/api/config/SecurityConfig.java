@@ -14,11 +14,8 @@ public class SecurityConfig {
         public SecurityFilterChain securityFilterChain(HttpSecurity http, UserDetailsService userDetailsService) throws Exception {
             http
                 .authorizeHttpRequests(authz -> authz
-                    .requestMatchers("/api/clients/**").permitAll()
-                    .anyRequest().authenticated()
+                    .anyRequest().permitAll()
                 )
-                .userDetailsService(userDetailsService)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable());
             return http.build();
