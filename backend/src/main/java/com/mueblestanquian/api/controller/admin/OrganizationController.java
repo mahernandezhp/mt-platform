@@ -36,12 +36,17 @@ public class OrganizationController {
     }
 
     @GetMapping
-    public PagedModel<EntityModel<Organization>> all(Pageable pageable) {
-        Page<Organization> orgs = organizationService.findAll(pageable);
+    public PagedModel<EntityModel<Organization>> all(Pageable pageable, @RequestParam(required = false) String name) {
+        Page<Organization> orgs;
+        if (name != null && !name.isEmpty()) {
+            orgs = organizationService.findByNameContaining(name, pageable);
+        } else {
+            orgs = organizationService.findAll(pageable);
+        }
         List<EntityModel<Organization>> orgModels = orgs.getContent().stream()
             .map(org -> EntityModel.of(org,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(org.getId())).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).withRel("orgs")
             ))
             .collect(java.util.stream.Collectors.toList());
 
@@ -49,18 +54,18 @@ public class OrganizationController {
             orgs.getSize(), orgs.getNumber(), orgs.getTotalElements(), orgs.getTotalPages()
         );
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
-        String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).toUri().toString();
+    String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).toUri().toString();
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
-        String selfHref = builder.replaceQueryParam("page", orgs.getNumber() + 1).toUriString();
+    String selfHref = name != null && !name.isEmpty() ? builder.replaceQueryParam("page", orgs.getNumber() + 1).replaceQueryParam("name", name).toUriString() : builder.replaceQueryParam("page", orgs.getNumber() + 1).toUriString();
         pagedModel.add(Link.of(selfHref, "self"));
         if (orgs.hasNext()) {
             Pageable nextPage = orgs.nextPageable();
-            String nextHref = builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).toUriString();
+            String nextHref = name != null && !name.isEmpty() ? builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).replaceQueryParam("name", name).toUriString() : builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).toUriString();
             pagedModel.add(Link.of(nextHref, "next"));
         }
         if (orgs.hasPrevious()) {
             Pageable prevPage = orgs.previousPageable();
-            String prevHref = builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).toUriString();
+            String prevHref = name != null && !name.isEmpty() ? builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).replaceQueryParam("name", name).toUriString() : builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).toUriString();
             pagedModel.add(Link.of(prevHref, "prev"));
         }
         return pagedModel;
@@ -103,7 +108,7 @@ public class OrganizationController {
         Organization org = organizationService.findById(id).orElseThrow();
         EntityModel<Organization> model = EntityModel.of(org,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(id)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).withRel("orgs")
         );
         model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getRecordTypes(id)).withRel("record-types"));
         model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getProfiles(id)).withRel("profiles"));
@@ -116,7 +121,7 @@ public class OrganizationController {
         return ResponseEntity.created(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(saved.getId())).toUri())
             .body(EntityModel.of(saved,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(saved.getId())).withSelfRel(),
-                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).withRel("orgs")
             ));
     }
 
@@ -126,7 +131,7 @@ public class OrganizationController {
         Organization updated = organizationService.save(org);
         return ResponseEntity.ok(EntityModel.of(updated,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(id)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).withRel("orgs")
         ));
     }
 

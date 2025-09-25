@@ -33,4 +33,8 @@ public class OrganizationService {
     public void deleteById(UUID id) {
         organizationRepository.deleteById(id);
     }
+
+    public Page<Organization> findByNameContaining(String name, Pageable pageable) {
+        return organizationRepository.findByNameContainingIgnoreCase(name, pageable);
+    }
 }
