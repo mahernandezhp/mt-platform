@@ -37,7 +37,7 @@ public class OrganizationController {
     }
 
     @GetMapping
-    public PagedModel<EntityModel<Organization>> all(Pageable pageable, @RequestParam Map<String, String> filters) {
+    public OrganizationPageResponse all(Pageable pageable, @RequestParam Map<String, String> filters) {
         // Remove known non-filter params
         Map<String, String> filterParams = new java.util.HashMap<>(filters);
         filterParams.remove("page");
@@ -59,7 +59,17 @@ public class OrganizationController {
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
             orgs.getSize(), orgs.getNumber() + 1, orgs.getTotalElements(), orgs.getTotalPages()
         );
+
+        // Build filter info object
+        Map<String, Object> filterInfo = new java.util.HashMap<>();
+        filterInfo.put("fields", filterParams.keySet());
+        filterInfo.put("values", filterParams);
+
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
+        pagedModel.getMetadata().getClass(); // keep metadata
+        pagedModel.getLinks(); // keep links
+        pagedModel.getContent(); // keep content
+        // Removed erroneous call to pagedModel.getProperties()
         String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).toUri().toString();
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
 
@@ -80,7 +90,7 @@ public class OrganizationController {
             String prevHref = builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).toUriString();
             pagedModel.add(Link.of(prevHref, "prev"));
         }
-        return pagedModel;
+        return new OrganizationPageResponse(pagedModel, filterInfo);
     }
 
     @GetMapping("/{id}/record-types")
