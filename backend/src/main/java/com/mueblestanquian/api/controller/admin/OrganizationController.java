@@ -57,7 +57,7 @@ public class OrganizationController {
             .collect(java.util.stream.Collectors.toList());
 
         PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
-            orgs.getSize(), orgs.getNumber(), orgs.getTotalElements(), orgs.getTotalPages()
+            orgs.getSize(), orgs.getNumber() + 1, orgs.getTotalElements(), orgs.getTotalPages()
         );
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
         String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).toUri().toString();
