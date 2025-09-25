@@ -2,6 +2,11 @@
 package com.mueblestanquian.api.controller.admin;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.hateoas.server.mvc.RepresentationModelAssemblerSupport;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.hateoas.EntityModel;
@@ -29,17 +34,29 @@ public class OrganizationController {
     }
 
     @GetMapping
-    public CollectionModel<EntityModel<Organization>> all() {
-        List<Organization> orgs = organizationService.findAll();
-        List<EntityModel<Organization>> orgModels = orgs.stream()
+    public PagedModel<EntityModel<Organization>> all(Pageable pageable) {
+        Page<Organization> orgs = organizationService.findAll(pageable);
+        List<EntityModel<Organization>> orgModels = orgs.getContent().stream()
             .map(org -> EntityModel.of(org,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(org.getId())).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withRel("orgs")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
             ))
             .collect(java.util.stream.Collectors.toList());
-        return CollectionModel.of(orgModels,
-            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withSelfRel()
+
+        PagedModel.PageMetadata metadata = new PagedModel.PageMetadata(
+            orgs.getSize(), orgs.getNumber(), orgs.getTotalElements(), orgs.getTotalPages()
         );
+        PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
+        pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(pageable)).withSelfRel());
+        if (orgs.hasNext()) {
+            Pageable nextPage = orgs.nextPageable();
+            pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(nextPage)).withRel("next"));
+        }
+        if (orgs.hasPrevious()) {
+            Pageable prevPage = orgs.previousPageable();
+            pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(prevPage)).withRel("prev"));
+        }
+        return pagedModel;
     }
 
     @GetMapping("/{id}/record-types")
@@ -79,7 +96,7 @@ public class OrganizationController {
         Organization org = organizationService.findById(id).orElseThrow();
         EntityModel<Organization> model = EntityModel.of(org,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(id)).withSelfRel(),
-            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withRel("orgs")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
         );
         model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getRecordTypes(id)).withRel("record-types"));
         model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getProfiles(id)).withRel("profiles"));
@@ -92,7 +109,7 @@ public class OrganizationController {
         return ResponseEntity.created(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(saved.getId())).toUri())
             .body(EntityModel.of(saved,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(saved.getId())).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withRel("orgs")
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
             ));
     }
 
@@ -102,7 +119,7 @@ public class OrganizationController {
         Organization updated = organizationService.save(org);
         return ResponseEntity.ok(EntityModel.of(updated,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(id)).withSelfRel(),
-            WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withRel("orgs")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).withRel("orgs")
         ));
     }
 

@@ -1,5 +1,7 @@
 package com.mueblestanquian.api.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.mueblestanquian.api.model.admin.Organization;
 import com.mueblestanquian.api.repository.admin.OrganizationRepository;
 import org.springframework.stereotype.Service;
@@ -16,8 +18,8 @@ public class OrganizationService {
         this.organizationRepository = organizationRepository;
     }
 
-    public List<Organization> findAll() {
-        return organizationRepository.findAll();
+    public Page<Organization> findAll(Pageable pageable) {
+        return organizationRepository.findAll(pageable);
     }
 
     public Optional<Organization> findById(UUID id) {
