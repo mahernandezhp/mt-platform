@@ -1,6 +1,8 @@
-
 package com.mueblestanquian.api.controller.admin;
 
+import org.springframework.hateoas.Link;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,14 +49,19 @@ public class OrganizationController {
             orgs.getSize(), orgs.getNumber(), orgs.getTotalElements(), orgs.getTotalPages()
         );
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
-        pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(pageable)).withSelfRel());
+        String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged())).toUri().toString();
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
+        String selfHref = builder.replaceQueryParam("page", orgs.getNumber() + 1).toUriString();
+        pagedModel.add(Link.of(selfHref, "self"));
         if (orgs.hasNext()) {
             Pageable nextPage = orgs.nextPageable();
-            pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(nextPage)).withRel("next"));
+            String nextHref = builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).toUriString();
+            pagedModel.add(Link.of(nextHref, "next"));
         }
         if (orgs.hasPrevious()) {
             Pageable prevPage = orgs.previousPageable();
-            pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(prevPage)).withRel("prev"));
+            String prevHref = builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).toUriString();
+            pagedModel.add(Link.of(prevHref, "prev"));
         }
         return pagedModel;
     }
