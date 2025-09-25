@@ -1,5 +1,7 @@
 package com.mueblestanquian.api.service;
 
+import org.springframework.data.jpa.domain.Specification;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.mueblestanquian.api.model.admin.Organization;
@@ -36,5 +38,15 @@ public class OrganizationService {
 
     public Page<Organization> findByNameContaining(String name, Pageable pageable) {
         return organizationRepository.findByNameContainingIgnoreCase(name, pageable);
+    }
+
+    public Page<Organization> findByFilters(Map<String, String> filters, Pageable pageable) {
+        Specification<Organization> spec = Specification.where((root, query, cb) -> cb.conjunction());
+        for (Map.Entry<String, String> entry : filters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get(key)), "%" + value.toLowerCase() + "%"));
+        }
+        return organizationRepository.findAll(spec, pageable);
     }
 }

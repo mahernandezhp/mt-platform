@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 import org.springframework.hateoas.CollectionModel;
 import com.mueblestanquian.api.model.admin.RecordType;
 import com.mueblestanquian.api.model.admin.Profile;
@@ -36,10 +37,15 @@ public class OrganizationController {
     }
 
     @GetMapping
-    public PagedModel<EntityModel<Organization>> all(Pageable pageable, @RequestParam(required = false) String name) {
+    public PagedModel<EntityModel<Organization>> all(Pageable pageable, @RequestParam Map<String, String> filters) {
+        // Remove known non-filter params
+        Map<String, String> filterParams = new java.util.HashMap<>(filters);
+        filterParams.remove("page");
+        filterParams.remove("size");
+        filterParams.remove("sort");
         Page<Organization> orgs;
-        if (name != null && !name.isEmpty()) {
-            orgs = organizationService.findByNameContaining(name, pageable);
+        if (!filterParams.isEmpty()) {
+            orgs = organizationService.findByFilters(filterParams, pageable);
         } else {
             orgs = organizationService.findAll(pageable);
         }
@@ -54,18 +60,24 @@ public class OrganizationController {
             orgs.getSize(), orgs.getNumber(), orgs.getTotalElements(), orgs.getTotalPages()
         );
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
-    String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).toUri().toString();
+        String baseUrl = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all(Pageable.unpaged(), null)).toUri().toString();
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl);
-    String selfHref = name != null && !name.isEmpty() ? builder.replaceQueryParam("page", orgs.getNumber() + 1).replaceQueryParam("name", name).toUriString() : builder.replaceQueryParam("page", orgs.getNumber() + 1).toUriString();
+
+        // Add all filter params to links
+        for (Map.Entry<String, String> entry : filterParams.entrySet()) {
+            builder.replaceQueryParam(entry.getKey(), entry.getValue());
+        }
+
+        String selfHref = builder.replaceQueryParam("page", orgs.getNumber() + 1).toUriString();
         pagedModel.add(Link.of(selfHref, "self"));
         if (orgs.hasNext()) {
             Pageable nextPage = orgs.nextPageable();
-            String nextHref = name != null && !name.isEmpty() ? builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).replaceQueryParam("name", name).toUriString() : builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).toUriString();
+            String nextHref = builder.replaceQueryParam("page", nextPage.getPageNumber() + 1).toUriString();
             pagedModel.add(Link.of(nextHref, "next"));
         }
         if (orgs.hasPrevious()) {
             Pageable prevPage = orgs.previousPageable();
-            String prevHref = name != null && !name.isEmpty() ? builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).replaceQueryParam("name", name).toUriString() : builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).toUriString();
+            String prevHref = builder.replaceQueryParam("page", prevPage.getPageNumber() + 1).toUriString();
             pagedModel.add(Link.of(prevHref, "prev"));
         }
         return pagedModel;
