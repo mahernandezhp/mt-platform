@@ -41,9 +41,30 @@ public class OrganizationController {
         // Remove known non-filter params
         Map<String, String> filterParams = new java.util.HashMap<>(filters);
         String filterLogic = filterParams.remove("filter_logic");
+        String sortParam = filters.get("sort");
         filterParams.remove("page");
         filterParams.remove("size");
         filterParams.remove("sort");
+
+        org.springframework.data.domain.Sort sort = pageable.getSort();
+        if (sortParam != null && !sortParam.isEmpty()) {
+            // sort=field1:asc,field2:desc
+            String[] sortFields = sortParam.split(",");
+            org.springframework.data.domain.Sort.Order[] orders = java.util.Arrays.stream(sortFields)
+                .map(s -> {
+                    String[] parts = s.split(":");
+                    String field = parts[0];
+                    String direction = parts.length > 1 ? parts[1] : "asc";
+                    return new org.springframework.data.domain.Sort.Order(
+                        direction.equalsIgnoreCase("desc") ? org.springframework.data.domain.Sort.Direction.DESC : org.springframework.data.domain.Sort.Direction.ASC,
+                        field
+                    );
+                })
+                .toArray(org.springframework.data.domain.Sort.Order[]::new);
+            sort = org.springframework.data.domain.Sort.by(orders);
+            pageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        }
+
         Page<Organization> orgs;
         if (!filterParams.isEmpty()) {
             orgs = organizationService.findByFilters(filterParams, pageable, filterLogic);
@@ -66,6 +87,21 @@ public class OrganizationController {
     filterInfo.put("fields", filterParams.keySet());
     filterInfo.put("values", filterParams);
     filterInfo.put("logic", filterLogic);
+    // Procesa sortParam a formato JSON
+    java.util.List<java.util.Map<String, String>> sortList = new java.util.ArrayList<>();
+    if (sortParam != null && !sortParam.isEmpty()) {
+        String[] sortFields = sortParam.split(",");
+        for (String s : sortFields) {
+            String[] parts = s.split(":");
+            String field = parts[0];
+            String direction = parts.length > 1 ? parts[1] : "asc";
+            java.util.Map<String, String> sortObj = new java.util.HashMap<>();
+            sortObj.put("field", field);
+            sortObj.put("direction", direction);
+            sortList.add(sortObj);
+        }
+    }
+    filterInfo.put("sort", sortList);
 
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
         pagedModel.getMetadata().getClass(); // keep metadata
