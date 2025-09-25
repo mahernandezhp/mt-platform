@@ -3,7 +3,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE SCHEMA IF NOT EXISTS mt_admin;
 SET search_path TO mt_admin;
 
-CREATE TABLE  IF NOT EXISTS mt_admin.organization (
+-- Tabla de organizaciones
+CREATE TABLE IF NOT EXISTS mt_admin.organization (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -15,14 +16,85 @@ CREATE TABLE  IF NOT EXISTS mt_admin.organization (
     last_modified_date TIMESTAMP,
     last_modified_by_id UUID REFERENCES mt_admin.user(id) DEFAULT NULL,
     last_activity_date TIMESTAMP,
-    last_viewed_date TIMESTAMP,
+    last_viewed_date TIMESTAMP DEFAULT NULL,
     owner_id UUID REFERENCES mt_admin.user(id) DEFAULT NULL,
     master_record_id UUID,
     record_type_id UUID
 );
 
+-- Tabla de tipos de registros
+CREATE TABLE mt_admin.record_type (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id UUID REFERENCES mt_admin.organization(id),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by_id UUID DEFAULT NULL,
+    last_modified_date TIMESTAMP,
+    last_modified_by_id UUID DEFAULT NULL,
+    last_activity_date TIMESTAMP,
+    last_viewed_date TIMESTAMP DEFAULT NULL,
+    owner_id UUID DEFAULT NULL
+);
+
+-- Tabla de roles de usuario
+CREATE TABLE mt_admin.user_role (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id UUID REFERENCES mt_admin.organization(id),
+    user_id UUID DEFAULT NULL,
+    parent_id UUID REFERENCES mt_admin.user_role(id),
+    tree_order INTEGER,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by_id UUID DEFAULT NULL,
+    last_modified_date TIMESTAMP,
+    last_modified_by_id UUID DEFAULT NULL,
+    last_activity_date TIMESTAMP,
+    last_viewed_date TIMESTAMP DEFAULT NULL,
+    owner_id UUID DEFAULT NULL,
+    record_type_id UUID REFERENCES mt_admin.record_type(id) DEFAULT NULL
+);
+
+-- Tabla de perfiles de usuario
+CREATE TABLE IF NOT EXISTS mt_admin.profile (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id UUID REFERENCES mt_admin.organization(id),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by_id UUID DEFAULT NULL,
+    last_modified_date TIMESTAMP,
+    last_modified_by_id UUID DEFAULT NULL,
+    last_activity_date TIMESTAMP,
+    last_viewed_date TIMESTAMP DEFAULT NULL,
+    owner_id UUID DEFAULT NULL,
+    record_type_id UUID REFERENCES mt_admin.record_type(id) DEFAULT NULL
+);
+
+-- Tabla de usuarios de la aplicación
+CREATE TABLE IF NOT EXISTS mt_admin.user (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_id UUID REFERENCES mt_admin.organization(id),
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    name VARCHAR(100),
+    profile_id UUID REFERENCES mt_admin.profile(id),
+    user_role_id UUID REFERENCES mt_admin.user_role(id),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by_id UUID REFERENCES mt_admin.user(id) DEFAULT NULL,
+    last_modified_date TIMESTAMP,
+    last_modified_by_id UUID REFERENCES mt_admin.user(id) DEFAULT NULL,
+    last_activity_date TIMESTAMP,
+    last_viewed_date TIMESTAMP DEFAULT NULL,
+    owner_id UUID REFERENCES mt_admin.user(id) DEFAULT NULL,
+    record_type_id UUID REFERENCES mt_admin.record_type(id) DEFAULT NULL
+);
+
 -- Tabla para registrar los logins de acceso a la app
-CREATE TABLE mt_admin.login_audit (
+CREATE TABLE IF NOT EXISTS mt_admin.login_audit (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID REFERENCES mt_admin.organization(id),
     user_id UUID REFERENCES mt_admin.user(id),
@@ -39,7 +111,7 @@ CREATE TABLE mt_admin.login_audit (
 );
 
 -- Tabla de relación entre usuario y rol (asignación múltiple de roles a usuarios)
-CREATE TABLE mt_admin.user_role_user (
+CREATE TABLE IF NOT EXISTS mt_admin.user_role_user (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID REFERENCES mt_admin.organization(id),
     user_id UUID REFERENCES mt_admin.user(id),
@@ -48,44 +120,6 @@ CREATE TABLE mt_admin.user_role_user (
     assigned_by_id UUID REFERENCES mt_admin.user(id),
     last_modified_date TIMESTAMP,
     last_modified_by_id UUID REFERENCES mt_admin.user(id)
-);
-
--- Tabla de perfiles de usuario
-CREATE TABLE mt_admin.profile (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    org_id UUID REFERENCES mt_admin.organization(id),
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by_id UUID REFERENCES mt_admin.user(id),
-    last_modified_date TIMESTAMP,
-    last_modified_by_id UUID REFERENCES mt_admin.user(id),
-    last_activity_date TIMESTAMP,
-    last_viewed_date TIMESTAMP,
-    owner_id UUID REFERENCES mt_admin.user(id),
-    master_record_id UUID,
-    record_type_id UUID REFERENCES mt_admin.record_type(id)
-);
-
--- Tabla de roles de usuario
-CREATE TABLE mt_admin.user_role (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    org_id UUID REFERENCES mt_admin.organization(id),
-    user_id UUID REFERENCES mt_admin.user(id),
-    profile_id UUID REFERENCES mt_admin.profile(id),
-    parent_id UUID REFERENCES mt_admin.user_role(id),
-    tree_order INTEGER,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by_id UUID REFERENCES mt_admin.user(id),
-    last_modified_date TIMESTAMP,
-    last_modified_by_id UUID REFERENCES mt_admin.user(id),
-    last_activity_date TIMESTAMP,
-    last_viewed_date TIMESTAMP,
-    owner_id UUID REFERENCES mt_admin.user(id),
-    master_record_id UUID,
-    record_type_id UUID REFERENCES mt_admin.record_type(id)
 );
 
 -- Tabla de objetos (representa entidades personalizables)
@@ -128,43 +162,6 @@ CREATE TABLE mt_admin.field (
     master_record_id UUID,
     record_type_id UUID REFERENCES mt_admin.record_type(id)
 );
-
-CREATE TABLE mt_admin.record_type (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    org_id UUID REFERENCES mt_admin.org(id),
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by_id UUID REFERENCES mt_admin.users(id),
-    last_modified_date TIMESTAMP,
-    last_modified_by_id UUID REFERENCES mt_admin.users(id),
-    last_activity_date TIMESTAMP,
-    last_viewed_date TIMESTAMP,
-    owner_id UUID REFERENCES mt_admin.users(id)
-);
-
-
-CREATE TABLE mt_admin.user (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    org_id UUID REFERENCES mt_admin.organization(id),
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    name VARCHAR(100),
-    profile_id UUID REFERENCES mt_admin.profile(id),
-    user_role_id UUID REFERENCES mt_admin.user_role(id),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by_id UUID REFERENCES mt_admin.user(id),
-    last_modified_date TIMESTAMP,
-    last_modified_by_id UUID REFERENCES mt_admin.user(id),
-    last_activity_date TIMESTAMP,
-    last_viewed_date TIMESTAMP,
-    owner_id UUID REFERENCES mt_admin.user(id),
-    master_record_id UUID,
-    record_type_id UUID
-);
-
 
 CREATE TABLE mt_admin.application (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
