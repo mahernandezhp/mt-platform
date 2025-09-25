@@ -40,12 +40,13 @@ public class OrganizationController {
     public OrganizationPageResponse all(Pageable pageable, @RequestParam Map<String, String> filters) {
         // Remove known non-filter params
         Map<String, String> filterParams = new java.util.HashMap<>(filters);
+        String filterLogic = filterParams.remove("filter_logic");
         filterParams.remove("page");
         filterParams.remove("size");
         filterParams.remove("sort");
         Page<Organization> orgs;
         if (!filterParams.isEmpty()) {
-            orgs = organizationService.findByFilters(filterParams, pageable);
+            orgs = organizationService.findByFilters(filterParams, pageable, filterLogic);
         } else {
             orgs = organizationService.findAll(pageable);
         }
@@ -60,10 +61,11 @@ public class OrganizationController {
             orgs.getSize(), orgs.getNumber() + 1, orgs.getTotalElements(), orgs.getTotalPages()
         );
 
-        // Build filter info object
-        Map<String, Object> filterInfo = new java.util.HashMap<>();
-        filterInfo.put("fields", filterParams.keySet());
-        filterInfo.put("values", filterParams);
+    // Build filter info object
+    Map<String, Object> filterInfo = new java.util.HashMap<>();
+    filterInfo.put("fields", filterParams.keySet());
+    filterInfo.put("values", filterParams);
+    filterInfo.put("logic", filterLogic);
 
         PagedModel<EntityModel<Organization>> pagedModel = PagedModel.of(orgModels, metadata);
         pagedModel.getMetadata().getClass(); // keep metadata

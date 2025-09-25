@@ -40,8 +40,8 @@ public class OrganizationService {
         return organizationRepository.findByNameContainingIgnoreCase(name, pageable);
     }
 
-    public Page<Organization> findByFilters(Map<String, String> filters, Pageable pageable) {
-        Specification<Organization> spec = Specification.where((root, query, cb) -> cb.conjunction());
+    public Page<Organization> findByFilters(Map<String, String> filters, Pageable pageable, String filterLogic) {
+        java.util.Map<String, Specification<Organization>> specs = new java.util.LinkedHashMap<>();
         java.util.Map<String, String> reservedWords = java.util.Map.of(
             "EQUAL", "eq",
             "NOT_EQUAL", "ne",
@@ -55,6 +55,7 @@ public class OrganizationService {
             "LESS_THAN_OR_EQUAL", "le"
         );
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        int idx = 1;
         for (Map.Entry<String, String> entry : filters.entrySet()) {
             final String rawKey = entry.getKey();
             final String value = entry.getValue();
@@ -68,10 +69,7 @@ public class OrganizationService {
                 field = rawKey;
                 operator = "contains";
             }
-            // Traducción de palabra reservada a operador
             operator = reservedWords.getOrDefault(operator, operator);
-
-            // Soporte para constantes de tiempo
             final String timeValue;
             if (value != null) {
                 if (value.matches("LAST_\\d+_DAYS")) {
@@ -100,42 +98,109 @@ public class OrganizationService {
             } else {
                 timeValue = value;
             }
+            Specification<Organization> spec;
             switch (operator) {
                 case "contains":
-                    spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get(field)), "%" + timeValue.toLowerCase() + "%"));
+                    spec = (root, query, cb) -> cb.like(cb.lower(root.get(field)), "%" + timeValue.toLowerCase() + "%");
                     break;
                 case "startswith":
-                    spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get(field)), timeValue.toLowerCase() + "%"));
+                    spec = (root, query, cb) -> cb.like(cb.lower(root.get(field)), timeValue.toLowerCase() + "%");
                     break;
                 case "endswith":
-                    spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get(field)), "%" + timeValue.toLowerCase()));
+                    spec = (root, query, cb) -> cb.like(cb.lower(root.get(field)), "%" + timeValue.toLowerCase());
                     break;
                 case "notcontains":
-                    spec = spec.and((root, query, cb) -> cb.notLike(cb.lower(root.get(field)), "%" + timeValue.toLowerCase() + "%"));
+                    spec = (root, query, cb) -> cb.notLike(cb.lower(root.get(field)), "%" + timeValue.toLowerCase() + "%");
                     break;
                 case "eq":
-                    spec = spec.and((root, query, cb) -> cb.equal(root.get(field), timeValue));
+                    spec = (root, query, cb) -> cb.equal(root.get(field), timeValue);
                     break;
                 case "ne":
-                    spec = spec.and((root, query, cb) -> cb.notEqual(root.get(field), timeValue));
+                    spec = (root, query, cb) -> cb.notEqual(root.get(field), timeValue);
                     break;
                 case "gt":
-                    spec = spec.and((root, query, cb) -> cb.greaterThan(root.get(field), timeValue));
+                    spec = (root, query, cb) -> cb.greaterThan(root.get(field), timeValue);
                     break;
                 case "lt":
-                    spec = spec.and((root, query, cb) -> cb.lessThan(root.get(field), timeValue));
+                    spec = (root, query, cb) -> cb.lessThan(root.get(field), timeValue);
                     break;
                 case "ge":
-                    spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get(field), timeValue));
+                    spec = (root, query, cb) -> cb.greaterThanOrEqualTo(root.get(field), timeValue);
                     break;
                 case "le":
-                    spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get(field), timeValue));
+                    spec = (root, query, cb) -> cb.lessThanOrEqualTo(root.get(field), timeValue);
                     break;
                 default:
-                    // Si el operador no es reconocido, ignora el filtro
+                    spec = null;
                     break;
             }
+            if (spec != null) {
+                specs.put(String.valueOf(idx), spec);
+            }
+            idx++;
         }
-        return organizationRepository.findAll(spec, pageable);
+        Specification<Organization> finalSpec = null;
+        if (filterLogic == null || filterLogic.equalsIgnoreCase("AND")) {
+            for (Specification<Organization> s : specs.values()) {
+                finalSpec = finalSpec == null ? Specification.where(s) : finalSpec.and(s);
+            }
+        } else if (filterLogic.equalsIgnoreCase("OR")) {
+            for (Specification<Organization> s : specs.values()) {
+                finalSpec = finalSpec == null ? Specification.where(s) : finalSpec.or(s);
+            }
+        } else {
+            // Custom logic parser: soporta paréntesis y AND/OR
+            // Ejemplo: (1 OR 2), ((1 AND 2) OR 3)
+            java.util.Stack<Specification<Organization>> stack = new java.util.Stack<>();
+            java.util.Stack<String> opStack = new java.util.Stack<>();
+            String expr = filterLogic.replaceAll("\\s+", "");
+            int i = 0;
+            while (i < expr.length()) {
+                char c = expr.charAt(i);
+                if (c == '(') {
+                    opStack.push("(");
+                    i++;
+                } else if (c == ')') {
+                    while (!opStack.isEmpty() && !opStack.peek().equals("(")) {
+                        String op = opStack.pop();
+                        Specification<Organization> right = stack.pop();
+                        Specification<Organization> left = stack.pop();
+                        stack.push(op.equals("AND") ? left.and(right) : left.or(right));
+                    }
+                    if (!opStack.isEmpty() && opStack.peek().equals("(")) {
+                        opStack.pop();
+                    }
+                    i++;
+                } else if (expr.startsWith("AND", i)) {
+                    opStack.push("AND");
+                    i += 3;
+                } else if (expr.startsWith("OR", i)) {
+                    opStack.push("OR");
+                    i += 2;
+                } else if (Character.isDigit(c)) {
+                    int j = i;
+                    while (j < expr.length() && Character.isDigit(expr.charAt(j))) j++;
+                    String num = expr.substring(i, j);
+                    Specification<Organization> s = specs.get(num);
+                    stack.push(Specification.where(s));
+                    i = j;
+                } else {
+                    i++;
+                }
+            }
+            while (!opStack.isEmpty()) {
+                String op = opStack.pop();
+                Specification<Organization> right = stack.pop();
+                Specification<Organization> left = stack.pop();
+                stack.push(op.equals("AND") ? left.and(right) : left.or(right));
+            }
+            if (!stack.isEmpty()) {
+                finalSpec = stack.pop();
+            }
+        }
+        if (finalSpec == null) {
+            finalSpec = Specification.where((root, query, cb) -> cb.conjunction());
+        }
+        return organizationRepository.findAll(finalSpec, pageable);
     }
 }
