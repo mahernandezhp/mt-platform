@@ -1,22 +1,26 @@
 package com.mueblestanquian.api.controller.admin;
 
-import com.mueblestanquian.api.model.admin.Organization;
-import com.mueblestanquian.api.service.OrganizationService;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.CollectionModel;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.hateoas.CollectionModel;
+import com.mueblestanquian.api.model.admin.RecordType;
+import com.mueblestanquian.api.model.admin.Organization;
+import com.mueblestanquian.api.service.RecordTypeService;
+import com.mueblestanquian.api.service.OrganizationService;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 
 @RestController
 @RequestMapping("/v1/orgs")
 public class OrganizationController {
     private final OrganizationService organizationService;
+    private final RecordTypeService recordTypeService;
 
-    public OrganizationController(OrganizationService organizationService) {
+    public OrganizationController(OrganizationService organizationService, RecordTypeService recordTypeService) {
         this.organizationService = organizationService;
+        this.recordTypeService = recordTypeService;
     }
 
     @GetMapping
@@ -30,6 +34,22 @@ public class OrganizationController {
             .collect(java.util.stream.Collectors.toList());
         return CollectionModel.of(orgModels,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withSelfRel()
+        );
+    }
+
+    @GetMapping("/{id}/record-types")
+    public CollectionModel<EntityModel<RecordType>> getRecordTypes(@PathVariable UUID id) {
+        List<RecordType> recordTypes = recordTypeService.findAll().stream()
+            .filter(rt -> id.equals(rt.getOrgId()))
+            .collect(java.util.stream.Collectors.toList());
+        List<EntityModel<RecordType>> models = recordTypes.stream()
+            .map(rt -> EntityModel.of(rt,
+                org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(RecordTypeController.class).one(rt.getId())).withSelfRel(),
+                org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(RecordTypeController.class).all()).withRel("record-types")
+            ))
+            .collect(java.util.stream.Collectors.toList());
+        return CollectionModel.of(models,
+            org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(OrganizationController.class).getRecordTypes(id)).withSelfRel()
         );
     }
 
