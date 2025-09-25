@@ -82,6 +82,7 @@ public class OrganizationController {
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withRel("orgs")
         );
         model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getRecordTypes(id)).withRel("record-types"));
+        model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getProfiles(id)).withRel("profiles"));
         return model;
     }
 

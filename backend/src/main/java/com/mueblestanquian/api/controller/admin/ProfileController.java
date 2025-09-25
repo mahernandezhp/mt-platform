@@ -24,10 +24,16 @@ public class ProfileController {
     public CollectionModel<EntityModel<Profile>> all() {
         List<Profile> profiles = profileRepository.findAll();
         List<EntityModel<Profile>> profileModels = profiles.stream()
-            .map(profile -> EntityModel.of(profile,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(ProfileController.class).one(profile.getId())).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(ProfileController.class).all()).withRel("profiles")
-            ))
+            .map(profile -> {
+                EntityModel<Profile> model = EntityModel.of(profile,
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(ProfileController.class).one(profile.getId())).withSelfRel(),
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(ProfileController.class).all()).withRel("profiles")
+                );
+                if (profile.getOrgId() != null) {
+                    model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(profile.getOrgId())).withRel("organization"));
+                }
+                return model;
+            })
             .collect(java.util.stream.Collectors.toList());
         return CollectionModel.of(profileModels,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(ProfileController.class).all()).withSelfRel()
