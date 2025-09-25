@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS mt_admin.profile (
     last_activity_date TIMESTAMP,
     last_viewed_date TIMESTAMP DEFAULT NULL,
     owner_id UUID DEFAULT NULL,
-    record_type_id UUID REFERENCES mt_admin.record_type(id) DEFAULT NULL
+    record_type_id UUID DEFAULT NULL
 );
 
 -- Tabla de usuarios de la aplicación

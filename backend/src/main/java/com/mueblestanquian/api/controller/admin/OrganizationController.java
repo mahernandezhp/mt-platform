@@ -56,10 +56,12 @@ public class OrganizationController {
     @GetMapping("/{id}")
     public EntityModel<Organization> one(@PathVariable UUID id) {
         Organization org = organizationService.findById(id).orElseThrow();
-        return EntityModel.of(org,
+        EntityModel<Organization> model = EntityModel.of(org,
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).one(id)).withSelfRel(),
             WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).all()).withRel("orgs")
         );
+        model.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(OrganizationController.class).getRecordTypes(id)).withRel("record-types"));
+        return model;
     }
 
     @PostMapping
