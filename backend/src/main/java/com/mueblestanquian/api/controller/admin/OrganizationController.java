@@ -84,8 +84,34 @@ public class OrganizationController {
 
     // Build filter info object
     Map<String, Object> filterInfo = new java.util.HashMap<>();
-    filterInfo.put("fields", filterParams.keySet());
-    filterInfo.put("values", filterParams);
+    // Procesa los campos y filtros a formato JSON
+    java.util.List<java.util.Map<String, String>> fieldsList = new java.util.ArrayList<>();
+    java.util.List<java.util.Map<String, String>> filtersList = new java.util.ArrayList<>();
+    for (String key : filterParams.keySet()) {
+        final String fieldName;
+        final String filterConst;
+        if (key.contains("__")) {
+            String[] parts = key.split("__", 2);
+            fieldName = parts[0];
+            filterConst = parts[1];
+        } else {
+            fieldName = key;
+            filterConst = "";
+        }
+        // Solo agrega el nombre del campo sin operador en fieldsList
+        if (fieldsList.stream().noneMatch(f -> f.get("field").equals(fieldName))) {
+            java.util.Map<String, String> fieldObj = new java.util.HashMap<>();
+            fieldObj.put("field", fieldName);
+            fieldsList.add(fieldObj);
+        }
+        java.util.Map<String, String> filterObj = new java.util.HashMap<>();
+        filterObj.put("field", fieldName);
+        filterObj.put("filter", filterConst);
+        filterObj.put("value", filterParams.get(key));
+        filtersList.add(filterObj);
+    }
+    // El campo 'fields' ya no se agrega al objeto 'filters'
+    filterInfo.put("filters", filtersList);
     filterInfo.put("logic", filterLogic);
     // Procesa sortParam a formato JSON
     java.util.List<java.util.Map<String, String>> sortList = new java.util.ArrayList<>();
