@@ -181,7 +181,7 @@ public class OrganizationController {
         List<EntityModel<Profile>> models = profiles.stream()
             .map(p -> EntityModel.of(p,
                 org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(ProfileController.class).one(p.getId())).withSelfRel(),
-                org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(ProfileController.class).all()).withRel("profiles")
+                org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo(org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn(ProfileController.class).all(org.springframework.data.domain.Pageable.unpaged(), null)).withRel("profiles")
             ))
             .collect(java.util.stream.Collectors.toList());
         return CollectionModel.of(models,
